@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <conio.h>
+
 #define MAX_BOOKS 100
 #define MAX_STRING 100
 typedef struct {
@@ -14,12 +15,25 @@ typedef struct {
 } Buku;
 Buku perpustakaan[MAX_BOOKS];
 int jumlah_buku = 0;
+
+// Deklarasi fungsi
+void simpanKeFile();
+void muatDariFile();
+void clearScreen();
+int login();
+void tampilkanMenu();
+int generateID();
+void tambahBuku();
+void tampilkanBuku();
+void hapusBuku();
+void editBuku();
+void urutkanBuku();
 void clearScreen() {
     system("cls");
 }
 int login() {
     char username[50], password[50];
-    
+    printf("\n");
     printf("=================================\n");
     printf("    SISTEM PERPUSTAKAAN LOGIN    \n");
     printf("=================================\n");
@@ -27,7 +41,10 @@ int login() {
     scanf("%s", username);
     printf("Password: ");
     scanf("%s", password);
-    if (strcmp(username, "admin") == 0 && strcmp(password, "123") == 0) {
+    
+    // Login username: admin
+    // login password: admin123
+    if (strcmp(username, "admin") == 0 && strcmp(password, "admin123") == 0) {
         printf("\nLogin berhasil! Selamat datang, %s\n", username);
         printf("Tekan enter untuk melanjutkan...");
         getch();
@@ -39,6 +56,7 @@ int login() {
         return 0;
     }
 }
+
 void tampilkanMenu() {
     printf("\n=================================\n");
     printf("    SISTEM MANAJEMEN PERPUSTAKAAN\n");
@@ -68,6 +86,8 @@ int generateID() {
         id++;
     }
 }
+
+// Fungsi untuk menambah buku
 void tambahBuku() {
     if (jumlah_buku >= MAX_BOOKS) {
         printf("\nPerpustakaan sudah penuh!\n");
@@ -80,7 +100,7 @@ void tambahBuku() {
     printf("ID Buku: %d (otomatis)\n", perpustakaan[jumlah_buku].id);
     
     printf("Judul Buku: ");
-    getchar(); // Membersihkan buffer
+    getchar();
     fgets(perpustakaan[jumlah_buku].judul, MAX_STRING, stdin);
     perpustakaan[jumlah_buku].judul[strcspn(perpustakaan[jumlah_buku].judul, "\n")] = 0;
     
@@ -98,7 +118,8 @@ void tambahBuku() {
     perpustakaan[jumlah_buku].tersedia = 1;
     
     jumlah_buku++;
-    printf("\nBuku berhasil ditambahkan!\n");
+    simpanKeFile();
+    printf("\nBuku berhasil ditambahkan dan disimpan ke file!\n");
 }
 void tampilkanBuku() {
     if (jumlah_buku == 0) {
@@ -146,17 +167,16 @@ void hapusBuku() {
     printf("\nBuku yang akan dihapus:\n");
     printf("Judul: %s\n", perpustakaan[found].judul);
     printf("Pengarang: %s\n", perpustakaan[found].pengarang);
-    
     char konfirmasi;
     printf("\nApakah Anda yakin ingin menghapus buku ini? (y/n): ");
     scanf(" %c", &konfirmasi);
-    
     if (konfirmasi == 'y' || konfirmasi == 'Y') {
         for (int i = found; i < jumlah_buku - 1; i++) {
             perpustakaan[i] = perpustakaan[i + 1];
         }
         jumlah_buku--;
-        printf("Buku berhasil dihapus!\n");
+        simpanKeFile();
+        printf("Buku berhasil dihapus dan disimpan ke file!\n");
     } else {
         printf("Penghapusan dibatalkan.\n");
     }
@@ -181,7 +201,7 @@ void editBuku() {
     
     if (found == -1) {
         printf("Buku dengan ID %d tidak ditemukan!\n", id);
-        return editBuku();
+        return;
     }
     
     printf("\nData buku saat ini:\n");
@@ -227,14 +247,14 @@ void editBuku() {
             return;
     }
     
-    printf("Data buku berhasil diupdate!\n");
+    simpanKeFile();
+    printf("Data buku berhasil diupdate dan disimpan ke file!\n");
 }
 void urutkanBuku() {
     if (jumlah_buku <= 1) {
         printf("\nTidak cukup buku untuk diurutkan.\n");
         return;
     }
-    
     printf("\n=== MENGURUTKAN BUKU BERDASARKAN JUDUL ===\n");
     for (int i = 0; i < jumlah_buku - 1; i++) {
         for (int j = 0; j < jumlah_buku - i - 1; j++) {
@@ -246,37 +266,87 @@ void urutkanBuku() {
         }
     }
     
-    printf("Buku berhasil diurutkan berdasarkan judul (A-Z)!\n");
+    simpanKeFile();
+    printf("Buku berhasil diurutkan berdasarkan judul (A-Z) dan disimpan ke file!\n");
     tampilkanBuku();
 }
-void inisialisasiData() {
-    strcpy(perpustakaan[0].judul, "Laskar Pelangi");
-    strcpy(perpustakaan[0].pengarang, "Andrea Hirata");
-    strcpy(perpustakaan[0].penerbit, "Bentang Pustaka");
-    perpustakaan[0].id = 1;
-    perpustakaan[0].tahun = 2005;
-    perpustakaan[0].tersedia = 1;
+void simpanKeFile() {
+    FILE *file = fopen("perpustakaan.txt", "w");
+    if (file == NULL) {
+        printf("Error: Tidak dapat membuka file untuk menulis!\n");
+        return;
+    }
     
-    strcpy(perpustakaan[1].judul, "Bumi Manusia");
-    strcpy(perpustakaan[1].pengarang, "Pramoedya Ananta Toer");
-    strcpy(perpustakaan[1].penerbit, "Hasta Mitra");
-    perpustakaan[1].id = 2;
-    perpustakaan[1].tahun = 1980;
-    perpustakaan[1].tersedia = 0;
+    fprintf(file, "%d\n", jumlah_buku);
+    for (int i = 0; i < jumlah_buku; i++) {
+        fprintf(file, "%d|%s|%s|%s|%d|%d\n",
+                perpustakaan[i].id,
+                perpustakaan[i].judul,
+                perpustakaan[i].pengarang,
+                perpustakaan[i].penerbit,
+                perpustakaan[i].tahun,
+                perpustakaan[i].tersedia);
+    }
     
-    strcpy(perpustakaan[2].judul, "Ayat-Ayat Cinta");
-    strcpy(perpustakaan[2].pengarang, "Habiburrahman El Shirazy");
-    strcpy(perpustakaan[2].penerbit, "Republika");
-    perpustakaan[2].id = 3;
-    perpustakaan[2].tahun = 2004;
-    perpustakaan[2].tersedia = 1;
+    fclose(file);
+    printf("Data berhasil disimpan ke file perpustakaan.txt\n");
+}
+void muatDariFile() {
+    FILE *file = fopen("perpustakaan.txt", "r");
+    if (file == NULL) {
+        printf("File perpustakaan.txt tidak ditemukan. Memulai dengan data kosong...\n");
+        jumlah_buku = 0;
+        simpanKeFile();
+        return;
+    }
     
-    jumlah_buku = 3;
+    if (fscanf(file, "%d", &jumlah_buku) != 1) {
+        printf("File kosong atau error membaca. Memulai dengan data kosong...\n");
+        fclose(file);
+        jumlah_buku = 0;
+        return;
+    }
+    fgetc(file);
+    
+    for (int i = 0; i < jumlah_buku; i++) {
+        char line[500];
+        if (fgets(line, sizeof(line), file) == NULL) {
+            printf("Error membaca data buku ke-%d\n", i+1);
+            break;
+        }
+        char *token = strtok(line, "|");
+        if (token != NULL) perpustakaan[i].id = atoi(token);
+        
+        token = strtok(NULL, "|");
+        if (token != NULL) strcpy(perpustakaan[i].judul, token);
+        
+        token = strtok(NULL, "|");
+        if (token != NULL) strcpy(perpustakaan[i].pengarang, token);
+        
+        token = strtok(NULL, "|");
+        if (token != NULL) strcpy(perpustakaan[i].penerbit, token);
+        
+        token = strtok(NULL, "|");
+        if (token != NULL) perpustakaan[i].tahun = atoi(token);
+        
+        token = strtok(NULL, "|");
+        if (token != NULL) perpustakaan[i].tersedia = atoi(token);
+    }
+    
+    fclose(file);
+    if (jumlah_buku > 0) {
+        printf("Data berhasil dimuat dari file perpustakaan.txt (%d buku)\n", jumlah_buku);
+    } else {
+        printf("File kosong. Memulai dengan database kosong.\n");
+    }
 }
 
 int main() {
     int pilihan;
-    inisialisasiData();
+    printf("Memuat data dari file...\n");
+    muatDariFile();
+    printf("Tekan enter untuk melanjutkan...");
+    getch();
     while (!login()) {
         clearScreen();
     }
@@ -317,7 +387,9 @@ int main() {
                 getch();
                 break;
             case 6:
-                printf("\nTerima kasih telah menggunakan Sistem Perpustakaan!\n");
+                printf("\nMenyimpan data terakhir ke file...\n");
+                simpanKeFile();
+                printf("Terima kasih telah menggunakan Sistem Perpustakaan!\n");
                 break;
             default:
                 printf("\nPilihan tidak valid! Silakan coba lagi.\n");
