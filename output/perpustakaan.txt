@@ -1,5 +1,1 @@
-4
-3|Ayat-Ayat Cinta|Habiburrahman El Shirazy|Republika|2004|1
-2|Bumi Manusia|Pramoedya Ananta Toer|Hasta Mitra|1980|0
-1|Laskar Pelangi|Andrea Hirata|Bentang Pustaka|2005|1
-4|Last of us|william|2021|2024|1
+0

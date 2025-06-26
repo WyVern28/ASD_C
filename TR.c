@@ -5,6 +5,11 @@
 
 #define MAX_BOOKS 100
 #define MAX_STRING 100
+#define MENU_COUNT 6
+#define KEY_UP 72
+#define KEY_DOWN 80
+#define KEY_ENTER 13
+
 typedef struct {
     int id;
     char judul[MAX_STRING];
@@ -13,24 +18,38 @@ typedef struct {
     int tahun;
     int tersedia;
 } Buku;
+
 Buku perpustakaan[MAX_BOOKS];
 int jumlah_buku = 0;
+
+// Array menu items
+char menu_items[MENU_COUNT][50] = {
+    "Tambah Buku",
+    "Hapus Buku", 
+    "Edit Buku",
+    "Tampilkan Daftar Buku",
+    "Urutkan Buku (Judul)",
+    "Exit"
+};
 
 // Deklarasi fungsi
 void simpanKeFile();
 void muatDariFile();
 void clearScreen();
 int login();
-void tampilkanMenu();
+void tampilkanMenu(int selected);
+int navigasiMenu();
 int generateID();
 void tambahBuku();
 void tampilkanBuku();
 void hapusBuku();
 void editBuku();
 void urutkanBuku();
+
 void clearScreen() {
     system("cls");
 }
+
 int login() {
     char username[50], password[50];
     printf("\n");
@@ -57,19 +76,62 @@ int login() {
     }
 }
 
-void tampilkanMenu() {
+void tampilkanMenu(int selected) {
+    clearScreen();
     printf("\n=================================\n");
     printf("    SISTEM MANAJEMEN PERPUSTAKAAN\n");
     printf("=================================\n");
-    printf("1. Tambah Buku\n");
-    printf("2. Hapus Buku\n");
-    printf("3. Edit Buku\n");
-    printf("4. Tampilkan Daftar Buku\n");
-    printf("5. Urutkan Buku (berdasarkan Judul)\n");
-    printf("6. Keluar\n");
+    printf("Gunakan arrow untuk memilih menu\n");
     printf("=================================\n");
-    printf("Pilihan Anda: ");
+    
+    for (int i = 0; i < MENU_COUNT; i++) {
+        if (i == selected) {
+            printf("[x] %s\n", menu_items[i]);
+        } else {
+            printf("[ ] %s\n", menu_items[i]);
+        }
+    }
+    printf("=================================\n");
+    printf("Gunakan panah atas/bawah untuk navigasi, Enter untuk memilih, ESC untuk keluar\n");
 }
+
+int navigasiMenu() {
+    int selected = 0; // Index menu yang dipilih (mulai dari 0)
+    int key;
+    
+    while (1) {
+        tampilkanMenu(selected);
+        
+        key = getch();
+        
+        if (key == 224) { // Arrow key prefix
+            key = getch(); // Baca karakter kedua
+            
+            switch (key) {
+                case KEY_UP:
+                    selected--;
+                    if (selected < 0) {
+                        selected = MENU_COUNT - 1; // Wrap ke menu terakhir
+                    }
+                    break;
+                    
+                case KEY_DOWN:
+                    selected++;
+                    if (selected >= MENU_COUNT) {
+                        selected = 0; // Wrap ke menu pertama
+                    }
+                    break;
+            }
+        }
+        else if (key == KEY_ENTER) {
+            return selected + 1; // Return 1-based index untuk kompatibilitas
+        }
+        else if (key == 27) { // ESC key untuk keluar
+            return -1; // Return -1 untuk exit
+        }
+    }
+}
+
 int generateID() {
     int id = 1;
     int found;
@@ -121,6 +183,7 @@ void tambahBuku() {
     simpanKeFile();
     printf("\nBuku berhasil ditambahkan dan disimpan ke file!\n");
 }
+
 void tampilkanBuku() {
     if (jumlah_buku == 0) {
         printf("\nTidak ada buku dalam perpustakaan.\n");
@@ -141,6 +204,7 @@ void tampilkanBuku() {
                perpustakaan[i].tersedia ? "Tersedia" : "Dipinjam");
     }
 }
+
 void hapusBuku() {
     if (jumlah_buku == 0) {
         printf("\nTidak ada buku untuk dihapus.\n");
@@ -181,6 +245,7 @@ void hapusBuku() {
         printf("Penghapusan dibatalkan.\n");
     }
 }
+
 void editBuku() {
     if (jumlah_buku == 0) {
         printf("\nTidak ada buku untuk diedit.\n");
@@ -250,6 +315,7 @@ void editBuku() {
     simpanKeFile();
     printf("Data buku berhasil diupdate dan disimpan ke file!\n");
 }
+
 void urutkanBuku() {
     if (jumlah_buku <= 1) {
         printf("\nTidak cukup buku untuk diurutkan.\n");
@@ -270,6 +336,7 @@ void urutkanBuku() {
     printf("Buku berhasil diurutkan berdasarkan judul (A-Z) dan disimpan ke file!\n");
     tampilkanBuku();
 }
+
 void simpanKeFile() {
     FILE *file = fopen("perpustakaan.txt", "w");
     if (file == NULL) {
@@ -291,6 +358,7 @@ void simpanKeFile() {
     fclose(file);
     printf("Data berhasil disimpan ke file perpustakaan.txt\n");
 }
+
 void muatDariFile() {
     FILE *file = fopen("perpustakaan.txt", "r");
     if (file == NULL) {
@@ -347,13 +415,20 @@ int main() {
     muatDariFile();
     printf("Tekan enter untuk melanjutkan...");
     getch();
+    
     while (!login()) {
         clearScreen();
     }
+    
     do {
-        clearScreen();
-        tampilkanMenu();
-        scanf("%d", &pilihan);
+        pilihan = navigasiMenu(); // Menggunakan navigasi arrow key
+        
+        if (pilihan == -1) { // ESC ditekan
+            printf("\nMenyimpan data terakhir ke file...\n");
+            simpanKeFile();
+            printf("Terima kasih telah menggunakan Sistem Perpustakaan!\n");
+            break;
+        }
         
         switch (pilihan) {
             case 1:
@@ -396,7 +471,7 @@ int main() {
                 printf("Tekan enter untuk melanjutkan...");
                 getch();
         }
-    } while (pilihan != 6);
+    } while (pilihan != 6 && pilihan != -1);
     
     return 0;
 }
