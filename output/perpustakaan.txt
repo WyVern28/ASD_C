@@ -1,1 +1,5 @@
-0
+4
+1|Dameyo|dame dame|sinarmas|2021|0
+4|Dylan|jojo|uksw|2025|1
+2|Hedon|cuki|sinar mas|2022|1
+5|agus|agusalim|aaa|1980|1
