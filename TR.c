@@ -54,7 +54,7 @@ int login() {
     char username[50], password[50];
     printf("\n");
     printf("=================================\n");
-    printf("    SISTEM PERPUSTAKAAN LOGIN    \n");
+    printf("              LOGIN              \n");
     printf("=================================\n");
     printf("Username: ");
     scanf("%s", username);
@@ -79,7 +79,7 @@ int login() {
 void tampilkanMenu(int selected) {
     clearScreen();
     printf("\n=================================\n");
-    printf("    SISTEM MANAJEMEN PERPUSTAKAAN\n");
+    printf("         MENU PERPUSTAKAAN       \n");
     printf("=================================\n");
     printf("Gunakan arrow untuk memilih menu\n");
     printf("=================================\n");
