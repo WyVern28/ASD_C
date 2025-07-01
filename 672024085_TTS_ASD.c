@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <windows.h>
 
-// Struktur untuk node linked list
+#define FILE_NAME "inventaris.txt"
+
 struct inventaris {
     char namaBarang[50];
     int tahunPengadaan;
@@ -12,26 +13,37 @@ struct inventaris {
     struct inventaris *next;
 };
 
-// Head pointer untuk linked list
 struct inventaris *head = NULL;
 
-// Fungsi untuk membuat node baru
 struct inventaris* createNode(char *nama, int tahun, int jumlah) {
     struct inventaris *newNode = (struct inventaris*)malloc(sizeof(struct inventaris));
-    if (newNode == NULL) {
+    if (!newNode) {
         printf("Gagal mengalokasi memori!\n");
         return NULL;
     }
-    
     strcpy(newNode->namaBarang, nama);
     newNode->tahunPengadaan = tahun;
     newNode->jumlah = jumlah;
     newNode->next = NULL;
-    
     return newNode;
 }
 
-// Fungsi untuk menghitung jumlah node dalam linked list
+void insertSorted(struct inventaris *newNode) {
+    if (head == NULL || strcasecmp(newNode->namaBarang, head->namaBarang) < 0) {
+        newNode->next = head;
+        head = newNode;
+        return;
+    }
+
+    struct inventaris *current = head;
+    while (current->next != NULL && strcasecmp(current->next->namaBarang, newNode->namaBarang) < 0) {
+        current = current->next;
+    }
+
+    newNode->next = current->next;
+    current->next = newNode;
+}
+
 int countNodes() {
     int count = 0;
     struct inventaris *temp = head;
@@ -42,28 +54,48 @@ int countNodes() {
     return count;
 }
 
-// Fungsi untuk insert node secara terurut berdasarkan nama barang
-void insertSorted(struct inventaris *newNode) {
-    // Jika list kosong atau nama baru lebih kecil dari head
-    if (head == NULL || strcasecmp(newNode->namaBarang, head->namaBarang) < 0) {
-        newNode->next = head;
-        head = newNode;
+// FILE HANDLING
+void saveToFile() {
+    FILE *fp = fopen(FILE_NAME, "w");
+    if (!fp) {
+        printf("Gagal membuka file untuk menyimpan!\n");
         return;
     }
-    
-    // Cari posisi yang tepat untuk insert
-    struct inventaris *current = head;
-    while (current->next != NULL && 
-           strcasecmp(current->next->namaBarang, newNode->namaBarang) < 0) {
-        current = current->next;
+
+    struct inventaris *temp = head;
+    while (temp != NULL) {
+        fprintf(fp, "%s;%d;%d\n", temp->namaBarang, temp->tahunPengadaan, temp->jumlah);
+        temp = temp->next;
     }
-    
-    // Insert node di posisi yang tepat
-    newNode->next = current->next;
-    current->next = newNode;
+
+    fclose(fp);
 }
 
-// Fungsi untuk menambah barang
+void loadFromFile() {
+    FILE *fp = fopen(FILE_NAME, "r");
+    if (!fp) {
+        // Jika file tidak ditemukan, dianggap kosong
+        return;
+    }
+
+    char baris[128];
+    while (fgets(baris, sizeof(baris), fp)) {
+        char *nama = strtok(baris, ";");
+        char *tahunStr = strtok(NULL, ";");
+        char *jumlahStr = strtok(NULL, "\n");
+
+        if (nama && tahunStr && jumlahStr) {
+            int tahun = atoi(tahunStr);
+            int jumlah = atoi(jumlahStr);
+            struct inventaris *node = createNode(nama, tahun, jumlah);
+            if (node) insertSorted(node);
+        }
+    }
+
+    fclose(fp);
+}
+
+// Fungsi input data
 bool tambah() {
     char jawaban;
     printf("Apakah Anda ingin menambah barang? (y/n): ");
@@ -80,72 +112,43 @@ bool tambah() {
     }
 }
 
-// Fungsi untuk input data barang
 void inputData() {
     do {
         char nama[50];
         int tahun, jumlah;
-        
+
         printf("\nMasukkan nama barang: ");
         fgets(nama, sizeof(nama), stdin);
-        strtok(nama, "\n"); // Hapus newline
-        
+        strtok(nama, "\n");
+
         printf("Masukkan tahun pengadaan: ");
         scanf("%d", &tahun);
         while (getchar() != '\n');
-        
+
         printf("Masukkan jumlah barang: ");
         scanf("%d", &jumlah);
         while (getchar() != '\n');
-        
-        // Buat node baru dan insert ke linked list
+
         struct inventaris *newNode = createNode(nama, tahun, jumlah);
-        if (newNode != NULL) {
+        if (newNode) {
             insertSorted(newNode);
-            printf("Barang berhasil ditambahkan!\n");
+            saveToFile();
+            printf("Barang berhasil ditambahkan dan disimpan!\n");
         }
-        
     } while (tambah());
 }
 
-// Fungsi untuk membuat dummy data
-void createDummyData() {
-    struct {
-        char nama[50];
-        int tahun;
-        int jumlah;
-    } dummy[] = {
-        {"Laptop", 2020, 5},
-        {"Printer", 2018, 3},
-        {"Proyektor", 2019, 2},
-        {"Scanner", 2021, 4},
-        {"AC", 2017, 1}
-    };
-
-    int dummySize = sizeof(dummy) / sizeof(dummy[0]);
-    
-    for (int i = 0; i < dummySize; i++) {
-        struct inventaris *newNode = createNode(dummy[i].nama, dummy[i].tahun, dummy[i].jumlah);
-        if (newNode != NULL) {
-            insertSorted(newNode);
-        }
-    }
-    
-    printf("Dummy data berhasil dimuat!\n");
-}
-
-// Fungsi untuk menampilkan semua data
 void tampilData() {
     printf("\n--- Daftar Inventaris ---\n");
-    
+
     if (head == NULL) {
         printf("Tidak ada data inventaris.\n");
         return;
     }
-    
+
     struct inventaris *temp = head;
     int no = 1;
-    
+
     while (temp != NULL) {
         printf("%d. Nama Barang    : %s\n", no, temp->namaBarang);
         printf("   Tahun Pengadaan: %d\n", temp->tahunPengadaan);
@@ -153,20 +156,19 @@ void tampilData() {
         temp = temp->next;
         no++;
     }
-    
+
     printf("Total barang: %d\n", countNodes());
 }
 
-// Fungsi untuk mencari data barang
 void searchData() {
     char keyword[50];
     printf("\nMasukkan nama barang yang ingin dicari: ");
     fgets(keyword, sizeof(keyword), stdin);
     strtok(keyword, "\n");
-    
+
     struct inventaris *temp = head;
     bool ditemukan = false;
-    
+
     while (temp != NULL) {
         if (strcasecmp(temp->namaBarang, keyword) == 0) {
             printf("\n--- Data Ditemukan ---\n");
@@ -184,7 +186,109 @@ void searchData() {
     }
 }
 
-// Fungsi untuk menghapus semua node (cleanup memory)
+void deleteData() {
+    if (head == NULL) {
+        printf("Tidak ada data untuk dihapus.\n");
+        return;
+    }
+
+    char keyword[50];
+    printf("\nMasukkan nama barang yang ingin dihapus: ");
+    fgets(keyword, sizeof(keyword), stdin);
+    strtok(keyword, "\n");
+
+    if (strcasecmp(head->namaBarang, keyword) == 0) {
+        struct inventaris *temp = head;
+        head = head->next;
+        printf("Barang '%s' berhasil dihapus.\n", temp->namaBarang);
+        free(temp);
+        saveToFile();
+        return;
+    }
+
+    struct inventaris *current = head;
+    while (current->next != NULL && strcasecmp(current->next->namaBarang, keyword) != 0) {
+        current = current->next;
+    }
+
+    if (current->next != NULL) {
+        struct inventaris *temp = current->next;
+        current->next = temp->next;
+        printf("Barang '%s' berhasil dihapus.\n", temp->namaBarang);
+        free(temp);
+        saveToFile();
+    } else {
+        printf("Barang dengan nama '%s' tidak ditemukan.\n", keyword);
+    }
+}
+
+void editData() {
+    if (head == NULL) {
+        printf("Tidak ada data untuk diedit.\n");
+        return;
+    }
+
+    char keyword[50];
+    printf("\nMasukkan nama barang yang ingin diedit: ");
+    fgets(keyword, sizeof(keyword), stdin);
+    strtok(keyword, "\n");
+
+    struct inventaris *temp = head;
+    bool ditemukan = false;
+
+    while (temp != NULL) {
+        if (strcasecmp(temp->namaBarang, keyword) == 0) {
+            printf("\n--- Data Ditemukan ---\n");
+            printf("Nama Barang    : %s\n", temp->namaBarang);
+            printf("Tahun Pengadaan: %d\n", temp->tahunPengadaan);
+            printf("Jumlah         : %d\n", temp->jumlah);
+
+            int opsi;
+            printf("\nApa yang ingin Anda edit?\n");
+            printf("1. Tahun Pengadaan\n");
+            printf("2. Jumlah\n");
+            printf("3. Keduanya\n");
+            printf("Pilihan: ");
+            scanf("%d", &opsi);
+            while (getchar() != '\n');
+
+            switch (opsi) {
+                case 1:
+                    printf("Masukkan tahun pengadaan baru: ");
+                    scanf("%d", &temp->tahunPengadaan);
+                    while (getchar() != '\n');
+                    break;
+                case 2:
+                    printf("Masukkan jumlah barang baru: ");
+                    scanf("%d", &temp->jumlah);
+                    while (getchar() != '\n');
+                    break;
+                case 3:
+                    printf("Masukkan tahun pengadaan baru: ");
+                    scanf("%d", &temp->tahunPengadaan);
+                    while (getchar() != '\n');
+                    printf("Masukkan jumlah barang baru: ");
+                    scanf("%d", &temp->jumlah);
+                    while (getchar() != '\n');
+                    break;
+                default:
+                    printf("Pilihan tidak valid.\n");
+                    return;
+            }
+
+            printf("Data berhasil diperbarui.\n");
+            saveToFile();
+            ditemukan = true;
+            break;
+        }
+        temp = temp->next;
+    }
+
+    if (!ditemukan) {
+        printf("Barang dengan nama '%s' tidak ditemukan.\n", keyword);
+    }
+}
+
 void cleanup() {
     struct inventaris *temp;
     while (head != NULL) {
@@ -194,55 +298,18 @@ void cleanup() {
     }
 }
 
-// Fungsi untuk menghapus barang berdasarkan nama
-void deleteData() {
-    if (head == NULL) {
-        printf("Tidak ada data untuk dihapus.\n");
-        return;
-    }
-    
-    char keyword[50];
-    printf("\nMasukkan nama barang yang ingin dihapus: ");
-    fgets(keyword, sizeof(keyword), stdin);
-    strtok(keyword, "\n");
-    
-    // Jika yang akan dihapus adalah head
-    if (strcasecmp(head->namaBarang, keyword) == 0) {
-        struct inventaris *temp = head;
-        head = head->next;
-        printf("Barang '%s' berhasil dihapus.\n", temp->namaBarang);
-        free(temp);
-        return;
-    }
-    
-    // Cari node yang akan dihapus
-    struct inventaris *current = head;
-    while (current->next != NULL && 
-           strcasecmp(current->next->namaBarang, keyword) != 0) {
-        current = current->next;
-    }
-    
-    if (current->next != NULL) {
-        struct inventaris *temp = current->next;
-        current->next = temp->next;
-        printf("Barang '%s' berhasil dihapus.\n", temp->namaBarang);
-        free(temp);
-    } else {
-        printf("Barang dengan nama '%s' tidak ditemukan.\n", keyword);
-    }
-}
-
 int main() {
     int pilihan;
 
-    createDummyData();
+    loadFromFile();
 
     do {
-        printf("\n===== MENU INVENTARIS (Linked List) =====\n");
+        printf("\n===== MENU INVENTARIS =====\n");
         printf("1. Tambah Data Barang\n");
         printf("2. Tampilkan Data\n");
         printf("3. Cari Barang\n");
         printf("4. Hapus Barang\n");
+        printf("5. Edit Data Barang\n");
         printf("0. Keluar\n");
         printf("Pilih opsi: ");
         scanf("%d", &pilihan);
@@ -255,13 +322,20 @@ int main() {
             case 2:
                 tampilData();
                 system("pause");
+                system("cls");
                 break;
             case 3:
                 searchData();
                 system("pause");
+                system("cls");
                 break;
             case 4:
                 deleteData();
+                system("pause");
+                system("cls");
+                break;
+            case 5:
+                editData();
                 system("pause");
                 break;
             case 0:
@@ -270,7 +344,7 @@ int main() {
                 printf("Keluar dari program.\n");
                 break;
             default:
-                printf("Tidak ada dalam pilihan.\n");
+                printf("Pilihan tidak valid.\n");
                 break;
         }
     } while (pilihan != 0);
