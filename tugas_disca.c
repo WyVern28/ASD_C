@@ -1,11 +1,13 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <ctype.h>  // untuk isdigit
 
 struct Karyawan {
     int idKaryawan;
     char nama[50];
-    char difisi[50];
+    char divisi[50];
+    struct Karyawan *next;
 };
 
 void newline(char *str) {
@@ -15,17 +17,114 @@ void newline(char *str) {
     }
 }
 
-void insertionSort(struct Karyawan arr[], int n) {
-    for (int i = 1; i < n; i++) {
-        struct Karyawan key = arr[i];
-        int j = i - 1;
+struct Karyawan* buatNode(int id, char nama[], char divisi[]) {
+    struct Karyawan* nodeBaru = (struct Karyawan*)malloc(sizeof(struct Karyawan));
+    if (nodeBaru == NULL) return NULL;
+    nodeBaru->idKaryawan = id;
+    strcpy(nodeBaru->nama, nama);
+    strcpy(nodeBaru->divisi, divisi);
+    nodeBaru->next = NULL;
+    return nodeBaru;
+}
 
-        while (j >= 0 && arr[j].idKaryawan > key.idKaryawan) {
-            arr[j + 1] = arr[j];
-            j--;
-        }
+struct Karyawan* tambahKaryawan(struct Karyawan* head, int id, char nama[], char divisi[]) {
+    struct Karyawan* nodeBaru = buatNode(id, nama, divisi);
+    if (nodeBaru == NULL) return head;
+    if (head == NULL || head->idKaryawan > id) {
+        nodeBaru->next = head;
+        return nodeBaru;
+    }
+    struct Karyawan* current = head;
+    while (current->next != NULL && current->next->idKaryawan < id) {
+        current = current->next;
+    }
+    nodeBaru->next = current->next;
+    current->next = nodeBaru;
+    return head;
+}
 
-        arr[j + 1] = key;
+void tampilkanKaryawan(struct Karyawan* head) {
+    if (head == NULL) {
+        printf("\nBelum ada data karyawan yang ditambahkan.\n");
+        return;
+    }
+    int nomor = 1;
+    struct Karyawan* current = head;
+    while (current != NULL) {
+        printf("%d. ID: %d | Nama: %s | Divisi: %s\n", nomor, current->idKaryawan, current->nama, current->divisi);
+        current = current->next;
+        nomor++;
+    }
+}
+
+int hitungKaryawan(struct Karyawan* head) {
+    int count = 0;
+    while (head != NULL) {
+        count++;
+        head = head->next;
+    }
+    return count;
+}
+
+struct Karyawan* cariKaryawan(struct Karyawan* head, int id) {
+    while (head != NULL) {
+        if (head->idKaryawan == id) return head;
+        head = head->next;
+    }
+    return NULL;
+}
+
+struct Karyawan* hapusKaryawan(struct Karyawan* head, int nomor) {
+    if (head == NULL) return head;
+    int jumlah = hitungKaryawan(head);
+    if (nomor < 1 || nomor > jumlah) return head;
+    if (nomor == 1) {
+        struct Karyawan* temp = head;
+        head = head->next;
+        free(temp);
+        return head;
+    }
+    struct Karyawan* current = head;
+    for (int i = 1; i < nomor - 1; i++) current = current->next;
+    struct Karyawan* temp = current->next;
+    current->next = temp->next;
+    free(temp);
+    return head;
+}
+
+void simpanKeFile(struct Karyawan* head, const char* namaFile) {
+    FILE* file = fopen(namaFile, "w");
+    if (file == NULL) return;
+    while (head != NULL) {
+        fprintf(file, "%d|%s|%s\n", head->idKaryawan, head->nama, head->divisi);
+        head = head->next;
+    }
+    fclose(file);
+}
+
+struct Karyawan* muatDariFile(const char* namaFile) {
+    FILE* file = fopen(namaFile, "r");
+    if (file == NULL) return NULL;
+    struct Karyawan* head = NULL;
+    char line[200], *token;
+    while (fgets(line, sizeof(line), file)) {
+        newline(line);
+        token = strtok(line, "|");
+        if (!token) continue;
+        int id = atoi(token);
+        char* nama = strtok(NULL, "|");
+        char* divisi = strtok(NULL, "|");
+        if (nama && divisi) head = tambahKaryawan(head, id, nama, divisi);
+    }
+    fclose(file);
+    return head;
+}
+
+void bebaskanMemori(struct Karyawan* head) {
+    while (head != NULL) {
+        struct Karyawan* temp = head;
+        head = head->next;
+        free(temp);
     }
 }
 
@@ -37,116 +136,104 @@ void clearScreen() {
     #endif
 }
 
-int main() {
-    struct Karyawan *daftar = NULL;
-    int jumlahKaryawan = 0;
+struct Karyawan* editKaryawan(struct Karyawan* head, int id) {
+    struct Karyawan* karyawan = cariKaryawan(head, id);
+    if (karyawan == NULL) {
+        printf("\nKaryawan dengan ID %d tidak ditemukan!\n", id);
+        return head;
+    }
+    printf("\nData saat ini:\nID: %d\nNama: %s\nDivisi: %s\n", karyawan->idKaryawan, karyawan->nama, karyawan->divisi);
+    printf("\n1. Edit Nama\n2. Edit Divisi\n3. Edit Nama dan Divisi\n0. Batal Edit\nPilihan: ");
     int pilihan;
+    scanf("%d", &pilihan); getchar();
+    if (pilihan == 1 || pilihan == 3) {
+        printf("Masukkan nama baru: ");
+        fgets(karyawan->nama, sizeof(karyawan->nama), stdin);
+        newline(karyawan->nama);
+    }
+    if (pilihan == 2 || pilihan == 3) {
+        printf("Masukkan divisi baru: ");
+        fgets(karyawan->divisi, sizeof(karyawan->divisi), stdin);
+        newline(karyawan->divisi);
+    }
+    return head;
+}
 
+int main() {
+    struct Karyawan* daftarKaryawan = muatDariFile("data_karyawan.txt");
+    int pilihan;
     do {
         clearScreen();
-        printf("\n======= MENU =======\n");
-        printf("1. Tambah Karyawan\n");
-        printf("2. Daftar Karyawan\n");
-        printf("3. Hapus Karyawan\n");
-        printf("0. Keluar\n");
-        printf("Pilihan Anda : ");
-        scanf("%d", &pilihan);
-        getchar();
-
+        printf("\n======= MENU KARYAWAN =======\n");
+        printf("1. Tambah Karyawan\n2. Daftar Karyawan\n3. Hapus Karyawan\n4. Cari Karyawan\n5. Edit Data Karyawan\n0. Keluar\nPilihan Anda: ");
+        scanf("%d", &pilihan); getchar();
         switch (pilihan) {
-            case 1:
-                printf("\nMasukkan jumlah karyawan yang akan ditambahkan : ");
-                scanf("%d", &jumlahKaryawan);
-                getchar();
-
-                daftar = (struct Karyawan*) malloc(jumlahKaryawan * sizeof(struct Karyawan));
-                if (daftar == NULL) {
-                    printf("Alokasi memori gagal!\n");
+            case 1: {
+                char idStr[20];
+                int id;
+                printf("\nMasukkan ID Karyawan: ");
+                fgets(idStr, sizeof(idStr), stdin);
+                newline(idStr);
+                char *endptr;
+                id = strtol(idStr, &endptr, 10);
+                if (*endptr != '\0') {
+                    printf("ID harus berupa angka!\n");
                     system("pause");
-                    return 1;
+                    break;
                 }
-
-                for (int i = 0; i < jumlahKaryawan; i++) {
-                    printf("\nDaftarkan Karyawan ke-%d\n", i + 1);
-
-                    printf("Masukkan nomor ID karyawan : ");
-                    scanf("%d", &daftar[i].idKaryawan);
-                    getchar();
-
-                    printf("Masukkan nama Karyawan : ");
-                    fgets(daftar[i].nama, sizeof(daftar[i].nama), stdin);
-                    newline(daftar[i].nama);
-
-                    printf("Masukkan divisi yang dipegang karyawan : ");
-                    fgets(daftar[i].difisi, sizeof(daftar[i].difisi), stdin);
-                    newline(daftar[i].difisi);
+                if (cariKaryawan(daftarKaryawan, id)) {
+                    printf("ID sudah ada!\n");
+                    system("pause");
+                    break;
                 }
-                system("pause");
-                clearScreen();
+                char nama[50], divisi[50];
+                printf("Masukkan Nama Karyawan: ");
+                fgets(nama, sizeof(nama), stdin);
+                newline(nama);
+                printf("Masukkan Divisi: ");
+                fgets(divisi, sizeof(divisi), stdin);
+                newline(divisi);
+                daftarKaryawan = tambahKaryawan(daftarKaryawan, id, nama, divisi);
+                simpanKeFile(daftarKaryawan, "data_karyawan.txt");
                 break;
-
+            }
             case 2:
-                if (jumlahKaryawan == 0) {
-                    printf("\nBelum ada data karyawan yang ditambahkan.\n");
-                } else {
-                    insertionSort(daftar, jumlahKaryawan);
-                    printf("\n======== DAFTAR KARYAWAN ========\n");
-                    for (int i = 0; i < jumlahKaryawan; i++) {
-                        printf("ID : %d | Nama : %s | Divisi : %s\n", daftar[i].idKaryawan, daftar[i].nama, daftar[i].difisi);
-                    }
-                }
+                tampilkanKaryawan(daftarKaryawan);
                 system("pause");
-                clearScreen();
                 break;
-
-            case 3:
-                if (jumlahKaryawan == 0) {
-                    printf("\nBelum ada data karyawan yang ditambahkan.\n");
-                } else {
-                    printf("\nMasukkan nomor karyawan yang ingin dihapus (1-%d): ", jumlahKaryawan);
-                    int nomorHapus;
-                    scanf("%d", &nomorHapus);
-                    getchar();
-
-                    int indeks = nomorHapus - 1;
-
-                    if (indeks < 0 || indeks >= jumlahKaryawan) {
-                        printf("\nNomor karyawan tidak valid!\n");
-                    } else {
-                        for (int i = indeks; i < jumlahKaryawan - 1; i++) {
-                            daftar[i] = daftar[i + 1];
-                        }
-                        jumlahKaryawan--;
-
-                        struct Karyawan *temp = realloc(daftar, jumlahKaryawan * sizeof(struct Karyawan));
-                        if (temp != NULL || jumlahKaryawan == 0) {
-                            daftar = temp;
-                        } else {
-                            printf("Gagal mengalokasikan ulang memori!\n");
-                        }
-
-                        printf("\nKaryawan ke-%d berhasil dihapus!\n", nomorHapus);
-                    }
-                }
+            case 3: {
+                tampilkanKaryawan(daftarKaryawan);
+                int nomor;
+                printf("\nMasukkan nomor karyawan yang ingin dihapus: ");
+                scanf("%d", &nomor); getchar();
+                daftarKaryawan = hapusKaryawan(daftarKaryawan, nomor);
+                simpanKeFile(daftarKaryawan, "data_karyawan.txt");
+                break;
+            }
+            case 4: {
+                int id;
+                printf("Masukkan ID Karyawan: ");
+                scanf("%d", &id); getchar();
+                struct Karyawan* k = cariKaryawan(daftarKaryawan, id);
+                if (k)
+                    printf("\nID: %d\nNama: %s\nDivisi: %s\n", k->idKaryawan, k->nama, k->divisi);
+                else
+                    printf("Karyawan tidak ditemukan.\n");
                 system("pause");
-                clearScreen();
                 break;
-
-            case 0:
-                printf("\nKeluar dari program...\n");
-                break;
-
-            default:
-                printf("\nPilihan tidak valid! Silakan coba lagi.\n");
+            }
+            case 5: {
+                tampilkanKaryawan(daftarKaryawan);
+                int id;
+                printf("\nMasukkan ID Karyawan yang ingin diedit: ");
+                scanf("%d", &id); getchar();
+                daftarKaryawan = editKaryawan(daftarKaryawan, id);
+                simpanKeFile(daftarKaryawan, "data_karyawan.txt");
                 system("pause");
-                clearScreen();
+                break;
+            }
         }
-
     } while (pilihan != 0);
-
-    if (daftar != NULL) {
-        free(daftar);
-    }
-
+    bebaskanMemori(daftarKaryawan);
     return 0;
 }
