@@ -108,7 +108,7 @@ int tampilkan_mahasiswa_dan_kembalikan_array(Mahasiswa* arr[]) {
         printf("Nilai Akhir    : %.2f\n", arr[i]->akhir);
         printf("Predikat       : %s\n", arr[i]->predikat);
     }
-    if (count == 0)  // Jika tidak ada mahasiswa)
+    if (count == 0)  
     {
         printf("belum ada data mahasiswa.\n");
     }
