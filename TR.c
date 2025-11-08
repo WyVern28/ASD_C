@@ -53,14 +53,14 @@ int login() {
     char username[50], password[51];
 
     printf("\n");
-    printf("=====================================\n");
-    printf("                LOGIN                \n");
-    printf("=====================================\n");
+    printf("\t\t\t=====================================\n");
+    printf("\t\t\t                LOGIN                \n");
+    printf("\t\t\t=====================================\n");
 
-    printf("Username : ");
+    printf("\t\t\tUsername : ");
     scanf("%s", username);
 
-    printf("Password : ");
+    printf("\t\t\tPassword : ");
 
     int i = 0;
     char ch;
