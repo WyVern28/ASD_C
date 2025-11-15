@@ -148,7 +148,7 @@ int navigasiMenu() {
         }
     }
 }
-
+// bruh
 int generateID() {
     int id = 1;
     int found;
